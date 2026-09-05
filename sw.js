@@ -1,6 +1,6 @@
 // Service worker: cache-first per uso completamente offline (PWA).
 // Aggiornare CACHE_VERSION quando cambiano gli asset per invalidare la cache.
-const CACHE_VERSION = 'twd-v1';
+const CACHE_VERSION = 'twd-v2';
 const ASSETS = [
   './',
   'index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon.png',
   'icons/favicon-32.png',
+  'assets/sprites/tardis.png',
 ];
 
 self.addEventListener('install', (event) => {

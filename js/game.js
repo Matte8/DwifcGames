@@ -19,6 +19,11 @@
     return dx * dx + dy * dy;
   };
 
+  // Sprite pixel-art (8-bit) del TARDIS: generato con scripts/generate_sprites.py,
+  // nessun asset di terze parti. Caricato una sola volta e riutilizzato ad ogni frame.
+  const tardisSprite = new Image();
+  tardisSprite.src = 'assets/sprites/tardis.png';
+
   // ---------------------------------------------------------------------
   // Persistenza locale (funziona offline, sopravvive tra le sessioni)
   // ---------------------------------------------------------------------
@@ -313,6 +318,7 @@
       this.canvas.width = Math.floor(this.w * this.dpr);
       this.canvas.height = Math.floor(this.h * this.dpr);
       this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      this.ctx.imageSmoothingEnabled = false;
       this.checkOrientation();
     },
 
@@ -642,7 +648,7 @@
         ctx.stroke();
       }
 
-      const w = 16, h = 20;
+      const w = 26, h = w * (tardisSprite.naturalHeight / tardisSprite.naturalWidth || 1.375);
       // scia di spinta
       if (s.thrusting) {
         ctx.beginPath();
@@ -654,23 +660,15 @@
         ctx.fill();
       }
 
-      // corpo TARDIS
-      ctx.fillStyle = '#123a7a';
-      ctx.strokeStyle = '#6be8ff';
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(-w / 2, -h / 2, w, h);
-      ctx.strokeRect(-w / 2, -h / 2, w, h);
-      // divisori pannelli
-      ctx.beginPath();
-      ctx.moveTo(0, -h / 2); ctx.lineTo(0, h / 2);
-      ctx.moveTo(-w / 2, 0); ctx.lineTo(w / 2, 0);
-      ctx.strokeStyle = 'rgba(107,232,255,0.5)';
-      ctx.stroke();
-      // lanterna
-      ctx.beginPath();
-      ctx.fillStyle = '#fff4c8';
-      ctx.arc(0, -h / 2 - 4, 3, 0, TAU);
-      ctx.fill();
+      // corpo TARDIS (sprite pixel-art)
+      if (tardisSprite.complete && tardisSprite.naturalWidth) {
+        ctx.drawImage(tardisSprite, -w / 2, -h / 2, w, h);
+      } else {
+        ctx.fillStyle = '#123a7a';
+        ctx.strokeStyle = '#6be8ff';
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+      }
 
       ctx.restore();
     },
