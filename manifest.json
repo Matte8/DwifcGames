@@ -1,0 +1,17 @@
+{
+  "name": "TARDIS vs Dalek",
+  "short_name": "TARDIS vs Dalek",
+  "description": "Arcade a tema Doctor Who ispirato ad Asteroids: pilota il TARDIS, schiva ed elimina i Dalek. Gioco fan-made non ufficiale, gioca offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#01040c",
+  "theme_color": "#061a3d",
+  "lang": "it",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

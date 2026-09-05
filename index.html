@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#061a3d" />
+<meta name="description" content="TARDIS vs Dalek — arcade a tema Doctor Who ispirato ad Asteroids, gioca offline su PC e tablet." />
+<title>TARDIS vs Dalek</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden" aria-hidden="true">
+    <div class="hud-left">
+      <div class="hud-row"><span class="hud-label">PUNTI</span><span id="hud-score">0</span></div>
+      <div class="hud-row"><span class="hud-label">RECORD</span><span id="hud-highscore">0</span></div>
+    </div>
+    <div class="hud-mid">
+      <div id="hud-lives" aria-label="Vite rimanenti"></div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-row"><span class="hud-label">LIVELLO</span><span id="hud-level">1</span></div>
+      <button id="btn-mute" class="icon-btn" aria-label="Attiva/disattiva audio" title="Audio">🔊</button>
+      <button id="btn-pause" class="icon-btn" aria-label="Pausa" title="Pausa">⏸</button>
+    </div>
+  </div>
+
+  <!-- Start screen -->
+  <div id="screen-start" class="screen">
+    <h1>TARDIS <span class="vs">vs</span> DALEK</h1>
+    <p class="subtitle">Pilota il TARDIS attraverso il vortice temporale. Schiva i Dalek, distruggili con il cacciavite sonico e sopravvivi il più a lungo possibile.</p>
+    <p class="highscore-line">Record attuale: <strong id="start-highscore">0</strong></p>
+    <button id="btn-start" class="btn-primary">INIZIA PARTITA</button>
+    <div class="instructions">
+      <div class="instructions-col">
+        <h2>Da tastiera</h2>
+        <ul>
+          <li>⬅️ ➡️ / A D — ruota</li>
+          <li>⬆️ / W — spinta</li>
+          <li>Spazio — cacciavite sonico</li>
+          <li>P / Esc — pausa</li>
+        </ul>
+      </div>
+      <div class="instructions-col">
+        <h2>Touch (tablet)</h2>
+        <ul>
+          <li>Pad sinistro — ruota</li>
+          <li>Pulsante ⏫ — spinta</li>
+          <li>Pulsante ⚡ — cacciavite sonico</li>
+        </ul>
+      </div>
+    </div>
+    <p class="fan-note">Progetto amatoriale non ufficiale, ispirato a Doctor Who. Nessuna affiliazione con la BBC.</p>
+  </div>
+
+  <!-- Pause screen -->
+  <div id="screen-pause" class="screen hidden">
+    <h1>PAUSA</h1>
+    <button id="btn-resume" class="btn-primary">RIPRENDI</button>
+    <button id="btn-quit" class="btn-secondary">ESCI AL MENU</button>
+  </div>
+
+  <!-- Game over screen -->
+  <div id="screen-gameover" class="screen hidden">
+    <h1>ESTERMINATO!</h1>
+    <p class="subtitle">Il TARDIS è stato colpito troppe volte.</p>
+    <p class="final-score">Punteggio: <strong id="final-score">0</strong></p>
+    <p id="new-record" class="new-record hidden">Nuovo record!</p>
+    <button id="btn-restart" class="btn-primary">RIGIOCA</button>
+    <button id="btn-menu" class="btn-secondary">MENU</button>
+  </div>
+
+  <!-- Orientation hint -->
+  <div id="screen-orientation" class="screen hidden">
+    <div class="rotate-icon" aria-hidden="true">⤾</div>
+    <p>Per la migliore esperienza ruota il tablet in orizzontale.</p>
+    <button id="btn-orientation-dismiss" class="btn-secondary">Continua comunque</button>
+  </div>
+
+  <!-- Touch controls -->
+  <div id="touch-controls" class="hidden" aria-hidden="true">
+    <div class="touch-left">
+      <button id="btn-left" class="touch-btn" aria-label="Ruota a sinistra">◀</button>
+      <button id="btn-thrust" class="touch-btn touch-thrust" aria-label="Spinta">▲</button>
+      <button id="btn-right" class="touch-btn" aria-label="Ruota a destra">▶</button>
+    </div>
+    <div class="touch-right">
+      <button id="btn-fire" class="touch-btn touch-fire" aria-label="Cacciavite sonico">⚡</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/game.js" defer></script>
+</body>
+</html>
