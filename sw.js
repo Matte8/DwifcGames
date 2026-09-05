@@ -1,6 +1,6 @@
 // Service worker: cache-first per uso completamente offline (PWA).
 // Aggiornare CACHE_VERSION quando cambiano gli asset per invalidare la cache.
-const CACHE_VERSION = 'twd-v2';
+const CACHE_VERSION = 'twd-v3';
 const ASSETS = [
   './',
   'index.html',

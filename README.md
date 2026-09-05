@@ -16,8 +16,7 @@ Progetto amatoriale, **non ufficiale e senza scopo di lucro**, creato per gioco 
 
 | Azione | Tastiera | Touch |
 |---|---|---|
-| Ruota | ⬅️ ➡️ oppure A / D | pulsanti ◀ ▶ |
-| Spinta | ⬆️ oppure W | pulsante ▲ |
+| Ruota + spinta | ⬅️ ➡️ / A D ruotano, ⬆️ / W spinge | pad virtuale: trascina nella direzione voluta |
 | Cacciavite sonico (spara) | Spazio | pulsante ⚡ |
 | Pausa | P oppure Esc | icona pausa in alto |
 | Muto | — | icona altoparlante in alto |

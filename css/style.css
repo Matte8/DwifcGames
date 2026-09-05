@@ -236,7 +236,31 @@ canvas#game-canvas {
   border-color: var(--cyan);
 }
 
-.touch-thrust { margin-bottom: 26px; }
+.joystick-base {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: rgba(11, 42, 92, 0.45);
+  border: 2px solid rgba(107, 232, 255, 0.45);
+  position: relative;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  border-radius: 50%;
+  background: rgba(28, 77, 148, 0.9);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 12px rgba(107, 232, 255, 0.5);
+  pointer-events: none;
+  will-change: transform;
+}
 
 .touch-fire {
   width: 86px;

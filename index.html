@@ -50,8 +50,7 @@
       <div class="instructions-col">
         <h2>Touch (tablet)</h2>
         <ul>
-          <li>Pad sinistro — ruota</li>
-          <li>Pulsante ⏫ — spinta</li>
+          <li>Pad sinistro — trascina per direzione e spinta</li>
           <li>Pulsante ⚡ — cacciavite sonico</li>
         </ul>
       </div>
@@ -86,9 +85,9 @@
   <!-- Touch controls -->
   <div id="touch-controls" class="hidden" aria-hidden="true">
     <div class="touch-left">
-      <button id="btn-left" class="touch-btn" aria-label="Ruota a sinistra">◀</button>
-      <button id="btn-thrust" class="touch-btn touch-thrust" aria-label="Spinta">▲</button>
-      <button id="btn-right" class="touch-btn" aria-label="Ruota a destra">▶</button>
+      <div id="joystick-base" class="joystick-base" aria-label="Direzione e spinta">
+        <div id="joystick-knob" class="joystick-knob"></div>
+      </div>
     </div>
     <div class="touch-right">
       <button id="btn-fire" class="touch-btn touch-fire" aria-label="Cacciavite sonico">⚡</button>

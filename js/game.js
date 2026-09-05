@@ -156,8 +156,10 @@
   // Input: tastiera + touch unificati in un'unica mappa di stato
   // ---------------------------------------------------------------------
   const Input = (() => {
-    const state = { left: false, right: false, thrust: false, fire: false };
-    let firePressed = false; // per rilevare fronte di salita (fuoco singolo su tastiera)
+    const state = {
+      left: false, right: false, thrust: false, fire: false,
+      joyActive: false, joyAngle: 0, joyMagnitude: 0,
+    };
 
     const keyMap = {
       ArrowLeft: 'left', KeyA: 'left',
@@ -195,7 +197,55 @@
       el.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    return { state, bindKeyboard, bindButton };
+    function bindJoystick(baseEl, knobEl) {
+      if (!baseEl || !knobEl) return;
+      const maxRadius = 40; // px, raggio massimo di escursione della manopola
+      const deadzone = 0.25;
+      let activeId = null;
+
+      function setKnob(dx, dy) {
+        knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+
+      function update(e) {
+        const rect = baseEl.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        const dist = Math.hypot(dx, dy);
+        const clamped = Math.min(dist, maxRadius);
+        const angle = Math.atan2(dy, dx);
+        setKnob(Math.cos(angle) * clamped, Math.sin(angle) * clamped);
+        state.joyAngle = angle;
+        state.joyMagnitude = clamped / maxRadius;
+        state.joyActive = state.joyMagnitude > deadzone;
+      }
+
+      function release(e) {
+        if (e && e.pointerId !== activeId) return;
+        activeId = null;
+        state.joyActive = false;
+        state.joyMagnitude = 0;
+        setKnob(0, 0);
+      }
+
+      baseEl.addEventListener('pointerdown', (e) => {
+        activeId = e.pointerId;
+        baseEl.setPointerCapture(activeId);
+        update(e);
+        e.preventDefault();
+      });
+      baseEl.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== activeId) return;
+        update(e);
+        e.preventDefault();
+      });
+      baseEl.addEventListener('pointerup', release);
+      baseEl.addEventListener('pointercancel', release);
+      baseEl.addEventListener('lostpointercapture', release);
+      baseEl.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    return { state, bindKeyboard, bindButton, bindJoystick };
   })();
 
   // ---------------------------------------------------------------------
@@ -351,9 +401,7 @@
         this.updateMuteIcon();
       });
 
-      Input.bindButton(document.getElementById('btn-left'), 'left');
-      Input.bindButton(document.getElementById('btn-right'), 'right');
-      Input.bindButton(document.getElementById('btn-thrust'), 'thrust');
+      Input.bindJoystick(document.getElementById('joystick-base'), document.getElementById('joystick-knob'));
       Input.bindButton(document.getElementById('btn-fire'), 'fire');
     },
 
@@ -479,9 +527,21 @@
       const inp = Input.state;
 
       s.thrusting = false;
-      if (inp.left) s.angle -= 3.4 * dt;
-      if (inp.right) s.angle += 3.4 * dt;
-      if (inp.thrust) {
+      const turnRate = 3.4;
+      let wantsThrust = false;
+      if (inp.joyActive) {
+        // il pad virtuale punta la direzione: la nave ruota verso l'angolo
+        // trascinato invece di girare a incrementi fissi come da tastiera.
+        const diff = Math.atan2(Math.sin(inp.joyAngle - s.angle), Math.cos(inp.joyAngle - s.angle));
+        const maxStep = turnRate * dt;
+        s.angle += clamp(diff, -maxStep, maxStep);
+        wantsThrust = inp.joyMagnitude > 0.25;
+      } else {
+        if (inp.left) s.angle -= turnRate * dt;
+        if (inp.right) s.angle += turnRate * dt;
+        wantsThrust = inp.thrust;
+      }
+      if (wantsThrust) {
         const acc = 220;
         s.vx += Math.cos(s.angle) * acc * dt;
         s.vy += Math.sin(s.angle) * acc * dt;
