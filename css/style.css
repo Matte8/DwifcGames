@@ -153,6 +153,30 @@ canvas#game-canvas {
 
 .highscore-line { font-size: 14px; opacity: 0.8; }
 
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.mode-tab {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(234, 246, 255, 0.7);
+  border: 1px solid rgba(234, 246, 255, 0.3);
+  cursor: pointer;
+}
+
+.mode-tab.active {
+  background: rgba(11, 42, 92, 0.7);
+  color: #fff;
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(107, 232, 255, 0.4);
+}
+
 .btn-primary, .btn-secondary {
   pointer-events: auto;
   font-size: 17px;

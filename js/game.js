@@ -28,11 +28,17 @@
   // Persistenza locale (funziona offline, sopravvive tra le sessioni)
   // ---------------------------------------------------------------------
   const Storage = {
-    get highScore() {
-      return Number(localStorage.getItem('twd-highscore') || 0);
+    getHighScore(mode) {
+      const key = `twd-highscore-${mode}`;
+      if (localStorage.getItem(key) === null && mode === 'asteroids') {
+        // migrazione dalla vecchia chiave unica (prima che esistessero più modalità)
+        const legacy = localStorage.getItem('twd-highscore');
+        if (legacy !== null) return Number(legacy);
+      }
+      return Number(localStorage.getItem(key) || 0);
     },
-    set highScore(v) {
-      localStorage.setItem('twd-highscore', String(v));
+    setHighScore(mode, v) {
+      localStorage.setItem(`twd-highscore-${mode}`, String(v));
     },
     get muted() {
       return localStorage.getItem('twd-muted') === '1';
@@ -320,6 +326,25 @@
     }
   }
 
+  class Shield {
+    constructor(x, y, cols, rows, cellSize) {
+      this.x = x; this.y = y;
+      this.cols = cols; this.rows = rows; this.cellSize = cellSize;
+      this.cells = [];
+      for (let r = 0; r < rows; r++) {
+        const row = [];
+        for (let c = 0; c < cols; c++) {
+          // sagoma a bunker: angoli superiori smussati e tacca centrale in basso
+          let alive = true;
+          if (r === 0 && (c === 0 || c === cols - 1)) alive = false;
+          if (r === rows - 1 && Math.abs(c - (cols - 1) / 2) < 1) alive = false;
+          row.push(alive);
+        }
+        this.cells.push(row);
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------
   // Gioco
   // ---------------------------------------------------------------------
@@ -328,6 +353,7 @@
     ctx: null,
     w: 0, h: 0, dpr: 1,
     state: 'start', // start | playing | paused | gameover
+    mode: 'asteroids', // asteroids | invaders
     ship: null,
     daleks: [],
     bullets: [],
@@ -335,6 +361,7 @@
     particles: [],
     powerups: [],
     stars: [],
+    invaders: null,
     score: 0,
     level: 1,
     nextExtraLifeScore: 10000,
@@ -354,7 +381,7 @@
       this.bindUI();
       Input.bindKeyboard(() => this.togglePause());
 
-      document.getElementById('start-highscore').textContent = Storage.highScore;
+      document.getElementById('start-highscore').textContent = Storage.getHighScore(this.mode);
       this.updateMuteIcon();
       this.checkOrientation();
 
@@ -403,6 +430,24 @@
 
       Input.bindJoystick(document.getElementById('joystick-base'), document.getElementById('joystick-knob'));
       Input.bindButton(document.getElementById('btn-fire'), 'fire');
+
+      document.querySelectorAll('.mode-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          this.mode = btn.dataset.mode;
+          document.querySelectorAll('.mode-tab').forEach((b) => {
+            const active = b === btn;
+            b.classList.toggle('active', active);
+            b.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+          document.getElementById('mode-desc-asteroids').classList.toggle('hidden', this.mode !== 'asteroids');
+          document.getElementById('mode-desc-invaders').classList.toggle('hidden', this.mode !== 'invaders');
+          document.getElementById('instructions-asteroids').classList.toggle('hidden', this.mode !== 'asteroids');
+          document.getElementById('instructions-invaders').classList.toggle('hidden', this.mode !== 'invaders');
+          document.getElementById('mode-label').textContent = this.mode === 'asteroids' ? 'Asteroidi' : 'Space Invaders';
+          document.getElementById('start-highscore').textContent = Storage.getHighScore(this.mode);
+          Audio_.select();
+        });
+      });
     },
 
     updateMuteIcon() {
@@ -420,13 +465,19 @@
       this.score = 0;
       this.level = 1;
       this.nextExtraLifeScore = 10000;
-      this.ship = new Ship(this.w, this.h);
-      this.bullets = [];
-      this.enemyBullets = [];
       this.particles = [];
-      this.powerups = [];
-      this.daleks = [];
-      this.spawnWave();
+
+      if (this.mode === 'asteroids') {
+        this.ship = new Ship(this.w, this.h);
+        this.bullets = [];
+        this.enemyBullets = [];
+        this.powerups = [];
+        this.daleks = [];
+        this.spawnWave();
+      } else {
+        this.resetInvaders();
+      }
+
       this.state = 'playing';
       document.querySelectorAll('.screen').forEach((s) => s.classList.add('hidden'));
       document.getElementById('hud').classList.remove('hidden');
@@ -457,6 +508,83 @@
       }
     },
 
+    resetInvaders() {
+      this.invaders = {
+        player: { x: this.w / 2, y: this.h - 70, radius: 16, lives: 3, invulnerable: 2, fireCooldown: 0 },
+        bullets: [],
+        enemyBullets: [],
+        enemies: [],
+        offsetX: 0,
+        offsetY: 0,
+        dir: 1,
+        speed: 30,
+        fireTimer: 1.5,
+      };
+      this.spawnInvadersWave();
+      this.spawnShields();
+    },
+
+    spawnInvadersWave() {
+      const inv = this.invaders;
+      inv.enemies = [];
+      const rows = 5;
+      const cols = clamp(Math.floor((this.w - 80) / 70), 5, 8);
+      const spacingX = Math.min(70, (this.w - 80) / cols);
+      const spacingY = 44;
+      const originX = (this.w - spacingX * (cols - 1)) / 2;
+      const originY = 100;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const tier = r === 0 ? 2 : r < 3 ? 1 : 0;
+          const d = new Dalek(originX + c * spacingX, originY + r * spacingY, tier, 0, 0);
+          d.radius = 16;
+          d.gridRow = r;
+          d.gridCol = c;
+          d.baseX = d.x;
+          d.baseY = d.y;
+          d.alive = true;
+          d.scoreValue = tier === 2 ? 30 : tier === 1 ? 20 : 10;
+          inv.enemies.push(d);
+        }
+      }
+      inv.offsetX = 0;
+      inv.offsetY = 0;
+      inv.dir = 1;
+      inv.speed = 30 + this.level * 6;
+      inv.fireTimer = 1.2;
+      inv.cols = cols;
+    },
+
+    spawnShields() {
+      const inv = this.invaders;
+      inv.shields = [];
+      const count = 4;
+      const cols = 8, rows = 5, cellSize = 6;
+      const shieldW = cols * cellSize;
+      const spacing = this.w / (count + 1);
+      for (let i = 1; i <= count; i++) {
+        inv.shields.push(new Shield(spacing * i - shieldW / 2, inv.player.y - 110, cols, rows, cellSize));
+      }
+    },
+
+    shieldHit(b) {
+      for (const s of this.invaders.shields) {
+        const c = Math.floor((b.x - s.x) / s.cellSize);
+        const r = Math.floor((b.y - s.y) / s.cellSize);
+        if (r < 0 || r >= s.rows || c < 0 || c >= s.cols || !s.cells[r][c]) continue;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const rr = r + dr, cc = c + dc;
+            if (rr >= 0 && rr < s.rows && cc >= 0 && cc < s.cols && Math.random() < 0.7) s.cells[rr][cc] = false;
+          }
+        }
+        s.cells[r][c] = false;
+        this.spawnExplosion(b.x, b.y, 4, '#6be8ff');
+        return true;
+      }
+      return false;
+    },
+
     splitDalek(d) {
       Audio_.explosionSmall();
       const bits = 2;
@@ -484,7 +612,8 @@
     addScore(v) {
       this.score += v;
       if (this.score >= this.nextExtraLifeScore) {
-        this.ship.lives++;
+        if (this.mode === 'asteroids') this.ship.lives++;
+        else this.invaders.player.lives++;
         this.nextExtraLifeScore += 10000;
         Audio_.powerup();
       }
@@ -502,12 +631,26 @@
       }
     },
 
+    hitInvadersPlayer() {
+      const p = this.invaders.player;
+      if (p.invulnerable > 0) return;
+      Audio_.hit();
+      this.spawnExplosion(p.x, p.y, 26, '#6be8ff');
+      p.lives--;
+      if (p.lives <= 0) {
+        this.gameOver();
+      } else {
+        p.x = this.w / 2;
+        p.invulnerable = 2;
+      }
+    },
+
     gameOver() {
       this.state = 'gameover';
       Audio_.stopThrust();
       Audio_.gameOver();
-      const beat = this.score > Storage.highScore;
-      if (beat) Storage.highScore = this.score;
+      const beat = this.score > Storage.getHighScore(this.mode);
+      if (beat) Storage.setHighScore(this.mode, this.score);
       document.getElementById('final-score').textContent = this.score;
       document.getElementById('new-record').classList.toggle('hidden', !beat);
       document.getElementById('screen-gameover').classList.remove('hidden');
@@ -523,6 +666,20 @@
     },
 
     update(dt) {
+      if (this.mode === 'asteroids') this.updateAsteroids(dt);
+      else this.updateInvaders(dt);
+    },
+
+    updateParticles(dt) {
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        const p = this.particles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+        p.vx *= 0.96; p.vy *= 0.96;
+        if (p.life <= 0) this.particles.splice(i, 1);
+      }
+    },
+
+    updateAsteroids(dt) {
       const s = this.ship;
       const inp = Input.state;
 
@@ -623,13 +780,7 @@
         }
       }
 
-      // particelle
-      for (let i = this.particles.length - 1; i >= 0; i--) {
-        const p = this.particles[i];
-        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
-        p.vx *= 0.96; p.vy *= 0.96;
-        if (p.life <= 0) this.particles.splice(i, 1);
-      }
+      this.updateParticles(dt);
 
       // collisioni proiettile-dalek
       for (let i = this.bullets.length - 1; i >= 0; i--) {
@@ -663,6 +814,114 @@
         this.level++;
         Audio_.levelUp();
         this.spawnWave();
+      }
+    },
+
+    updateInvaders(dt) {
+      const inv = this.invaders;
+      const p = inv.player;
+      const inp = Input.state;
+
+      let moveDir = 0;
+      if (inp.joyActive) {
+        moveDir = Math.cos(inp.joyAngle) * inp.joyMagnitude;
+      } else {
+        if (inp.left) moveDir -= 1;
+        if (inp.right) moveDir += 1;
+      }
+      p.x = clamp(p.x + moveDir * 300 * dt, 24, this.w - 24);
+
+      if (p.invulnerable > 0) p.invulnerable -= dt;
+      if (p.fireCooldown > 0) p.fireCooldown -= dt;
+      if (inp.fire && p.fireCooldown <= 0) {
+        p.fireCooldown = 0.35;
+        inv.bullets.push(new Bullet(p.x, p.y - 20, 0, -480, 1.4));
+        Audio_.fire();
+      }
+
+      // movimento formazione: avanza finché non tocca un bordo, poi inverte e scende
+      let minX = Infinity, maxX = -Infinity;
+      for (const e of inv.enemies) {
+        if (!e.alive) continue;
+        const x = e.baseX + inv.offsetX;
+        minX = Math.min(minX, x - e.radius);
+        maxX = Math.max(maxX, x + e.radius);
+      }
+      if (isFinite(minX)) {
+        const step = inv.dir * inv.speed * dt;
+        if (minX + step < 24 || maxX + step > this.w - 24) {
+          inv.dir *= -1;
+          inv.offsetY += 16;
+        } else {
+          inv.offsetX += step;
+        }
+      }
+      for (const e of inv.enemies) {
+        if (!e.alive) continue;
+        e.x = e.baseX + inv.offsetX;
+        e.y = e.baseY + inv.offsetY;
+        e.rotation += e.spin * dt;
+        if (e.y + e.radius > p.y - 30) {
+          this.gameOver();
+          return;
+        }
+      }
+
+      // fuoco nemico: un Dalek vivo a caso, il più avanzato della sua colonna
+      const aliveCount = inv.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
+      inv.fireTimer -= dt;
+      if (inv.fireTimer <= 0 && aliveCount > 0) {
+        const col = randInt(0, inv.cols - 1);
+        let shooter = null;
+        for (const e of inv.enemies) {
+          if (e.alive && e.gridCol === col && (!shooter || e.gridRow > shooter.gridRow)) shooter = e;
+        }
+        if (shooter) {
+          inv.enemyBullets.push(new Bullet(shooter.x, shooter.y + shooter.radius, 0, 160 + this.level * 10, 3));
+          Audio_.enemyFire();
+        }
+        const ratio = aliveCount / inv.enemies.length;
+        inv.fireTimer = rand(0.5, 1.4) * (0.4 + ratio * 0.8);
+      }
+
+      // proiettili giocatore
+      for (let i = inv.bullets.length - 1; i >= 0; i--) {
+        const b = inv.bullets[i];
+        b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+        if (b.life <= 0 || b.y < -10) { inv.bullets.splice(i, 1); continue; }
+        if (this.shieldHit(b)) { inv.bullets.splice(i, 1); continue; }
+        for (const e of inv.enemies) {
+          if (!e.alive) continue;
+          if (dist2(b.x, b.y, e.x, e.y) < (b.radius + e.radius) ** 2) {
+            e.alive = false;
+            this.addScore(e.scoreValue);
+            this.spawnExplosion(e.x, e.y, e.tier === 2 ? 18 : e.tier === 1 ? 12 : 8, e.hue);
+            Audio_.explosionSmall();
+            inv.bullets.splice(i, 1);
+            break;
+          }
+        }
+      }
+
+      // proiettili nemici
+      for (let i = inv.enemyBullets.length - 1; i >= 0; i--) {
+        const b = inv.enemyBullets[i];
+        b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+        if (b.life <= 0 || b.y > this.h + 10) { inv.enemyBullets.splice(i, 1); continue; }
+        if (this.shieldHit(b)) { inv.enemyBullets.splice(i, 1); continue; }
+        if (dist2(b.x, b.y, p.x, p.y) < (b.radius + p.radius) ** 2) {
+          inv.enemyBullets.splice(i, 1);
+          this.hitInvadersPlayer();
+        }
+      }
+
+      this.updateParticles(dt);
+
+      if (inv.enemies.every((e) => !e.alive)) {
+        this.level++;
+        Audio_.levelUp();
+        this.spawnInvadersWave();
+        this.spawnShields();
       }
     },
 
@@ -825,12 +1084,41 @@
       }
     },
 
+    drawShields() {
+      const ctx = this.ctx;
+      ctx.fillStyle = '#1c4d94';
+      for (const s of this.invaders.shields) {
+        for (let r = 0; r < s.rows; r++) {
+          for (let c = 0; c < s.cols; c++) {
+            if (s.cells[r][c]) ctx.fillRect(s.x + c * s.cellSize, s.y + r * s.cellSize, s.cellSize, s.cellSize);
+          }
+        }
+      }
+    },
+
+    drawInvadersPlayer() {
+      const p = this.invaders.player;
+      if (p.invulnerable > 0 && Math.floor(p.invulnerable * 8) % 2 === 0) return;
+      const ctx = this.ctx;
+      const w = 26, h = w * (tardisSprite.naturalHeight / tardisSprite.naturalWidth || 1.375);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (tardisSprite.complete && tardisSprite.naturalWidth) {
+        ctx.drawImage(tardisSprite, -w / 2, -h / 2, w, h);
+      } else {
+        ctx.fillStyle = '#123a7a';
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+      }
+      ctx.restore();
+    },
+
     updateHUD() {
       document.getElementById('hud-score').textContent = this.score;
-      document.getElementById('hud-highscore').textContent = Math.max(Storage.highScore, this.score);
+      document.getElementById('hud-highscore').textContent = Math.max(Storage.getHighScore(this.mode), this.score);
       document.getElementById('hud-level').textContent = this.level;
+      const lives = this.mode === 'asteroids' ? this.ship.lives : this.invaders.player.lives;
       const livesEl = document.getElementById('hud-lives');
-      const n = Math.max(0, this.ship.lives);
+      const n = Math.max(0, lives);
       if (livesEl.childElementCount !== n) {
         livesEl.innerHTML = '';
         for (let i = 0; i < n; i++) {
@@ -841,6 +1129,22 @@
       }
     },
 
+    renderAsteroids() {
+      this.drawPowerUps();
+      this.drawBullets(this.bullets, '#6be8ff');
+      this.drawBullets(this.enemyBullets, '#ff5b4d');
+      for (const d of this.daleks) this.drawDalek(d);
+      this.drawShip();
+    },
+
+    renderInvaders() {
+      this.drawShields();
+      this.drawBullets(this.invaders.bullets, '#6be8ff');
+      this.drawBullets(this.invaders.enemyBullets, '#ff5b4d');
+      for (const e of this.invaders.enemies) if (e.alive) this.drawDalek(e);
+      this.drawInvadersPlayer();
+    },
+
     render(t) {
       const ctx = this.ctx;
       ctx.clearRect(0, 0, this.w, this.h);
@@ -848,11 +1152,8 @@
 
       if (this.state === 'playing' || this.state === 'paused') {
         this.drawParticles();
-        this.drawPowerUps();
-        this.drawBullets(this.bullets, '#6be8ff');
-        this.drawBullets(this.enemyBullets, '#ff5b4d');
-        for (const d of this.daleks) this.drawDalek(d);
-        this.drawShip();
+        if (this.mode === 'asteroids') this.renderAsteroids();
+        else this.renderInvaders();
         this.updateHUD();
       }
     },

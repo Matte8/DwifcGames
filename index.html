@@ -34,10 +34,19 @@
   <!-- Start screen -->
   <div id="screen-start" class="screen">
     <h1>TARDIS <span class="vs">vs</span> DALEK</h1>
-    <p class="subtitle">Pilota il TARDIS attraverso il vortice temporale. Schiva i Dalek, distruggili con il cacciavite sonico e sopravvivi il più a lungo possibile.</p>
-    <p class="highscore-line">Record attuale: <strong id="start-highscore">0</strong></p>
+
+    <div class="mode-tabs" role="tablist" aria-label="Modalità di gioco">
+      <button class="mode-tab active" data-mode="asteroids" role="tab" aria-selected="true">🛸 Asteroidi</button>
+      <button class="mode-tab" data-mode="invaders" role="tab" aria-selected="false">👾 Space Invaders</button>
+    </div>
+
+    <p class="subtitle" id="mode-desc-asteroids">Pilota il TARDIS attraverso il vortice temporale. Schiva i Dalek, distruggili con il cacciavite sonico e sopravvivi il più a lungo possibile.</p>
+    <p class="subtitle hidden" id="mode-desc-invaders">Difendi la Terra da un'invasione Dalek in perfetto stile arcade anni '70: muovi il TARDIS in orizzontale, spara e non lasciarli scendere fino in fondo.</p>
+
+    <p class="highscore-line">Record <span id="mode-label">Asteroidi</span>: <strong id="start-highscore">0</strong></p>
     <button id="btn-start" class="btn-primary">INIZIA PARTITA</button>
-    <div class="instructions">
+
+    <div class="instructions" id="instructions-asteroids">
       <div class="instructions-col">
         <h2>Da tastiera</h2>
         <ul>
@@ -55,6 +64,24 @@
         </ul>
       </div>
     </div>
+    <div class="instructions hidden" id="instructions-invaders">
+      <div class="instructions-col">
+        <h2>Da tastiera</h2>
+        <ul>
+          <li>⬅️ ➡️ / A D — muovi</li>
+          <li>Spazio — cacciavite sonico</li>
+          <li>P / Esc — pausa</li>
+        </ul>
+      </div>
+      <div class="instructions-col">
+        <h2>Touch (tablet)</h2>
+        <ul>
+          <li>Pad sinistro — trascina a destra/sinistra</li>
+          <li>Pulsante ⚡ — cacciavite sonico</li>
+        </ul>
+      </div>
+    </div>
+
     <p class="fan-note">Progetto amatoriale non ufficiale, ispirato a Doctor Who. Nessuna affiliazione con la BBC.</p>
   </div>
 
